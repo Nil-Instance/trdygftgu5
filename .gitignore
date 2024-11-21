@@ -1,41 +1,530 @@
-# Compiled Lua sources
-luac.out
+local Player = game:GetService("Players").LocalPlayer
+local Mouse = Player:GetMouse()
+local StarterGui = game:GetService("StarterGui")
 
-# luarocks build files
-*.src.rock
-*.zip
-*.tar.gz
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 
-# Object files
-*.o
-*.os
-*.ko
-*.obj
-*.elf
+local loser1 = Players.LocalPlayer
 
-# Precompiled Headers
-*.gch
-*.pch
+local function loser2(character)
+    local loser3 = character:WaitForChild("Being Carried", 5)
+    if loser3 and loser3:IsA("BoolValue") then
+        loser3:GetPropertyChangedSignal("Value"):Connect(function()
+            if loser3.Value == true then
+                local loser4 = loser1:WaitForChild("Backpack")
+                for _, tool in pairs(loser4:GetChildren()) do
+                    if tool:IsA("Tool") and tool:FindFirstChild("DamageRemote") and tool.Name ~= "Kawaii Revolver" then
+                        character:WaitForChild("Humanoid"):EquipTool(tool)
+                        break
+                    end
+                end
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-*.def
-*.exp
+                local loser5 = character:FindFirstChildOfClass("Tool")
+                local loser6 = character:FindFirstChild("Humanoid")
+                if loser5 and loser5:FindFirstChild("DamageRemote") and loser6 then
+                    repeat
+                        loser5.DamageRemote:FireServer(loser6)
+                        wait(0.1)
+                    until loser6.Health <= 0 or loser3.Value == false
+                end
+            end
+        end)
+    end
+end
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+loser1.CharacterAdded:Connect(function(character)
+    loser2(character)
+end)
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+if loser1.Character then
+    loser2(loser1.Character)
+end -- anti carry
 
+-- Variables
+local Players = game:GetService("Players") -- Servicio de jugadores
+local RunService = game:GetService("RunService") -- Servicio para ejecutar código en cada frame
+local speaker = Players.LocalPlayer -- El jugador local (tú)
+local character = speaker.Character or speaker.CharacterAdded:Wait() -- Obtener el personaje local
+
+-- Función para desactivar colisiones de otros jugadores
+local function disableCollisionsForOtherPlayers()
+    for _, player in pairs(Players:GetPlayers()) do
+        -- Verificar que el jugador no sea el "speaker" (tú) y que su personaje exista
+        if player ~= speaker and player.Character then
+            -- Recorrer todos los descendientes del personaje del jugador
+            for _, descendant in pairs(player.Character:GetDescendants()) do
+                -- Si el descendiente es una parte física (BasePart), desactivar la colisión
+                if descendant:IsA("BasePart") then
+                    descendant.CanCollide = false
+                end
+            end
+        end
+    end
+end
+
+-- Función que se ejecuta cuando el personaje reaparece
+local function onCharacterAdded(newCharacter)
+    character = newCharacter -- Actualizar la variable del personaje
+    -- Ejecutar la función cuando el personaje reaparece
+    disableCollisionsForOtherPlayers()
+    
+    -- Conectar el evento para cuando el personaje muera
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid.Died:Connect(function()
+        print("Personaje muerto, esperando el respawn...")
+    end)
+    
+    -- Mantener la desactivación de colisiones para otros jugadores en cada frame
+    RunService.Heartbeat:Connect(function()
+        disableCollisionsForOtherPlayers() -- Reaplicar desactivación de colisiones constantemente
+    end)
+end
+
+-- Conectar el evento CharacterAdded para cuando el personaje reaparezca
+speaker.CharacterAdded:Connect(onCharacterAdded)
+
+-- Llamar la función la primera vez (por si el personaje ya existe)
+if speaker.Character then
+    disableCollisionsForOtherPlayers()
+end
+-- anti fling
+
+local function showNotification(title, text, duration)
+    StarterGui:SetCore("SendNotification", {
+        Title = title;
+        Text = text;
+        Duration = duration;
+    })
+end
+
+local startX = 2187
+local startY = 18911
+local startZ = 36522
+
+local width = 20
+local depth = 20
+local blockSize = 4
+
+local darkRed = Color3.fromRGB(139, 0, 0)
+local lightRed = Color3.fromRGB(255, 102, 102)
+
+for x = 0, width - 1 do
+    for z = 0, depth - 1 do
+        local block = Instance.new("Part")
+        block.Size = Vector3.new(blockSize, blockSize, blockSize)
+        block.Position = Vector3.new(startX + x * blockSize, startY, startZ + z * blockSize)
+        block.Anchored = true
+        block.Material = Enum.Material.Plastic
+        block.Color = darkRed
+        block.Parent = game.Workspace
+        
+        -- Crear el texto sobre el bloque
+        local surfaceGui = Instance.new("SurfaceGui", block)
+        surfaceGui.Face = Enum.NormalId.Top
+        surfaceGui.AlwaysOnTop = false
+
+        local textLabel = Instance.new("TextLabel", surfaceGui)
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.Text = "Realcmmter cooking 😂" 
+        textLabel.TextColor3 = lightRed
+        textLabel.BackgroundTransparency = 1 
+        textLabel.TextScaled = true
+    end
+end
+
+local Players = game:GetService("Players")
+local speaker = Players.LocalPlayer
+local campPosition = CFrame.new(2227, 18916, 36561) -- Posicion de campeo/safe zone
+
+-- Funcion para teletransportar al lugar de campeo al hacer respawn
+local function onCharacterAdded(character)
+    -- Teletransportarse a la posicion de campeo al hacer spawn
+    wait(0.1) -- espera breve para asegurar que el HumanoidRootPart este disponible
+    character:WaitForChild("HumanoidRootPart").CFrame = campPosition
+    -- comenzar el monitoreo de perdida de vida y hacer tp a safe zone
+    spawn(monitorHealthAndTeleport)
+end
+
+-- detectar cuando el personaje hace spawn y aplicar la teletransportacion a la safe zone
+speaker.CharacterAdded:Connect(onCharacterAdded)
+
+if speaker.Character then
+    onCharacterAdded(speaker.Character)
+end
+
+wait(1)
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(2227, 18916, 36561)
+-- auto tp a la safe zone al hacer spawn
+wait()
+
+local Workspace = game:GetService("Workspace")
+
+-- funcion para verificar si el objetivo esta en estado de ragdoll o tiene baja vida
+local function bye(targetChar)
+    local humanoid = targetChar:FindFirstChild("Humanoid")
+    if humanoid and (humanoid.Health <= 17 and humanoid.Health > 0) then
+        return true
+    end
+
+    -- verificar si el BoolValue "Ragdolled" esta en true osea que si esta siendo cargado/carried
+    local ragdolled = targetChar:FindFirstChild("Ragdolled")
+    if ragdolled and ragdolled.Value == true then
+        return true
+    end
+    return false
+end
+
+-- funcion para ejecutar todas las acciones si el jugador esta en estado Ragdolled o con baja vida
+local function xd(targetPlayer)
+    local targetChar = Workspace:FindFirstChild(targetPlayer.Name)
+    if targetChar then
+        local humanoid = targetChar:FindFirstChild("Humanoid")
+
+        -- Verificar si el objetivo esta vivo antes de proceder
+        if humanoid and humanoid.Health > 0 then
+            local speaker = Players.LocalPlayer
+            local root = speaker.Character and speaker.Character:FindFirstChild("Torso")
+            local targetRoot = targetChar:FindFirstChild("Torso")
+
+            if root and targetRoot then
+                -- Repetir hasta que el BoolValue "Being Carried" este en true o el objetivo muera
+                while true do
+                    local beingCarried = targetChar:FindFirstChild("Being Carried")
+                    humanoid = targetChar:FindFirstChild("Humanoid") -- Volver a obtener la referencia por si cambia
+                    if humanoid and humanoid.Health <= 0 then
+                        -- Detener el bucle si el objetivo ha muerto
+                        warn("El objetivo ha muerto. Deteniendo el teletransporte.")
+                        break
+                    end
+                    
+                    if beingCarried and beingCarried.Value == true then
+                        break
+                    end
+
+                    -- teletransportarse dentro del torso del objetivo
+                    root.CFrame = targetRoot.CFrame
+                    wait(0.1)
+
+                    -- llamar al RemoteEvent "PickupRemote" que es el carry
+                    local pickupRemote = speaker.Character:FindFirstChild("PickupRemote")
+                    if pickupRemote then
+                        wait()
+                        pickupRemote:FireServer()
+                    else
+                        warn("No se encontro PickupRemote en el personaje.")
+                        break
+                    end
+                    wait()
+ game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.Two, false, game)                    
+-- Configuraciones
+local movementSpeed = 2 -- Velocidad de movimiento
+local isActive = false  -- Controla si el bucle está activo o no
+
+-- Variables
+local localPlayer = game.Players.LocalPlayer  -- Tu personaje
+local beingCarried = localPlayer:FindFirstChild("BeingCarried")  -- Valor booleano para verificar si está siendo cargado
+
+-- Función para encontrar al jugador más cercano
+local function findNearestPlayer()
+    local nearestPlayer = nil
+    local shortestDistance = math.huge  -- Distancia infinita para iniciar la búsqueda
+
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            -- Calcular la distancia entre tu personaje y el jugador objetivo
+            local targetTorso = player.Character.HumanoidRootPart
+            local myTorso = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if myTorso then
+                local distance = (myTorso.Position - targetTorso.Position).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    nearestPlayer = player
+                end
+            end
+        end
+    end
+
+    return nearestPlayer
+end
+
+-- Obtener el servicio de jugadores
+local Players = game:GetService("Players")
+
+-- Obtener al jugador local
+local player = Players.LocalPlayer
+
+-- Obtener el personaje del jugador local
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- Buscar el objeto 'Humanoid' dentro del personaje
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+-- Verificar si el 'Humanoid' existe
+if humanoid then
+    -- Hacer que el personaje se siente
+    humanoid.Sit = true
+end
+
+-- Función principal para activar el movimiento al jugador más cercano
+local function toggleMovement()
+    isActive = not isActive  -- Alterna entre activar y desactivar
+
+    if isActive then
+        print("Movimiento activado.")
+        while isActive do
+            -- Detener el bucle si el valor de "BeingCarried" es true
+            if beingCarried and beingCarried.Value then
+                isActive = false
+                print("Movimiento detenido porque 'BeingCarried' es true.")
+                break
+            end
+
+            -- Buscar el jugador más cercano
+            local nearestPlayer = findNearestPlayer()
+
+            if nearestPlayer and nearestPlayer.Character then
+                local targetTorso = nearestPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local myHumanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+                if targetTorso and myHumanoidRootPart then
+                    print("Moviéndose hacia el jugador más cercano: " .. nearestPlayer.Name)
+
+                    -- Posición inicial por debajo del torso del jugador más cercano
+                    local startPosition = targetTorso.Position - Vector3.new(0, 3, 0)
+
+                    -- Mover el personaje desde abajo hacia arriba, atravesando el torso
+                    for y = startPosition.Y, targetTorso.Position.Y + 4, movementSpeed do
+                        if not isActive then break end  -- Salir del bucle si se desactiva
+                        myHumanoidRootPart.CFrame = CFrame.new(targetTorso.Position.X, y, targetTorso.Position.Z)
+                        wait(0.01)  -- Espera un poco para ver el movimiento fluido
+                    end
+
+                    -- Esperar antes de volver a moverse
+                    wait(0.2)
+                else
+                    print("No se encontró el torso del jugador más cercano o de tu personaje.")
+                end
+            else
+                print("No se encontró ningún jugador cercano.")
+            end
+        end
+    else
+        print("Movimiento desactivado.")
+    end
+end
+-- Llamada a la función para activar o desactivar el movimiento
+_G.toggleMovement = toggleMovement
+local speaker = game.Players.LocalPlayer
+  local humanoid = speaker.Character:FindFirstChildWhichIsA("Humanoid")
+	 humanoid.Sit = true
+	   task.wait(0.1)
+	     humanoid.RootPart.CFrame = humanoid.RootPart.CFrame * CFrame.Angles(math.pi * 0.45, 0, 0)
+	   for _, v in ipairs(humanoid:GetPlayingAnimationTracks()) do
+v:Stop()
+	end
+    end
+
+  root.CFrame = CFrame.new(10394, -113, -10404)
+                wait(0.1)
+                root.CFrame = CFrame.new(10396.37, -426.99, -10406.17)
+                wait(0.1)
+                
+                local humanoid = speaker.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid.Health = 0
+                end
+            else
+                warn("no se encontro el HumanoidRootPart para el teletransporte.")
+            end
+        else
+            warn("el objetivo no esta vivo no haremos teletransporte.")
+        end
+    else
+        warn("el objetivo esta fuera del servidor posiblemente.")
+    end
+end
+
+-- funcion principal para campear y esperar a que el objetivo entre en ragdoll o tenga baja vida
+local function lol(targetPlayerName)
+    while true do
+        local targetPlayer = Players:FindFirstChild(targetPlayerName)
+        if targetPlayer then
+            local targetChar = Workspace:FindFirstChild(targetPlayer.Name)
+
+            -- Si el personaje esta en el mapa, verificar su estado
+            if targetChar and bye(targetChar) then
+                xd(targetPlayer)
+            end
+        else
+            -- El target no esta disponible aun, seguir esperando
+            warn("Esperando a que el jugador objetivo este en el juego o respawnee...")
+        end
+
+        wait(1) -- Esperar 1 segundo antes de verificar de nuevo
+    end
+end
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Player = Players.LocalPlayer
+
+-- Añadir más objetivos
+local targets = {
+    "MonitoKgonMagico",  -- pon los users para el void
+    "user2",
+    "user3",
+    "user4",
+    "user5"
+}
+
+-- Ejecución de la funcion para cada target en paralelo
+for _, target in ipairs(targets) do
+    spawn(function()
+        lol(target)
+    end)
+end
+
+-- Función para detectar si se debe empezar a 'cocinar' (atacar con Kawaii Revolver)
+local function shouldStartCooking(humanoid)
+    return humanoid and humanoid.Health <= 50 and humanoid.Health > 17
+end
+
+-- Función que ejecuta el 'cooking' si el target tiene entre 50 y 17 de vida y tiene HumanoidRootPart
+local function startCooking(targetPlayer)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") then
+        local Target = targetPlayer.Character.Humanoid
+        local tool = Player.Backpack:FindFirstChild("Kawaii Revolver")
+        local damageRemote = tool and tool:FindFirstChild("DamageRemote")
+
+        if damageRemote then
+            wait(0.2)
+            repeat
+                -- Pausar si no tiene HumanoidRootPart y esperar hasta que lo tenga
+                while not targetPlayer.Character:FindFirstChild("HumanoidRootPart") do
+                    print(targetPlayer.Name .. " no tiene HumanoidRootPart, esperando...")
+                    wait(3)  -- Esperar 1 segundo antes de revisar nuevamente
+                end
+
+                -- Solo ejecutar el "cooking" si el target tiene 50 o menos de vida
+                if Target and Target.Health <= 50 and Target.Health > 0 then
+                    tool.Parent = Player.Character
+                    damageRemote:FireServer(Target)
+                    tool.Parent = Player.Backpack
+                    wait(0.7)
+                else
+                    print(targetPlayer.Name .. " tiene más de 50 de vida o está muerto, esperando...")
+                    wait(1)  -- Esperar 1 segundo antes de revisar nuevamente
+                end
+            until Target.Health <= 17
+        else
+            print("DamageRemote no encontrado en la herramienta.")
+        end
+    else
+        print("El objetivo " .. targetPlayer.Name .. " no es válido.")
+    end
+end
+
+-- Función para iniciar el 'cooking' en todos los targets de la lista
+local function startCookingOnTargets()
+    for _, targetName in ipairs(targets) do
+        local targetPlayer = game.Players:FindFirstChild(targetName)
+        
+        if targetPlayer then
+            print("Iniciando cooking para " .. targetName)
+            startCooking(targetPlayer)
+        else
+            print("Jugador " .. targetName .. " no encontrado.")
+        end
+    end
+end
+
+
+-- Función para monitorear la salud de un jugador objetivo
+local function monitorHealth(targetPlayer)
+    while true do
+        if targetPlayer and targetPlayer.Character then
+            local humanoid = targetPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid and shouldStartCooking(humanoid) then
+                startCooking(targetPlayer)
+            end
+        end
+        wait(1)
+    end
+end
+
+-- Escuchar cuando un jugador entra al servidor
+Players.PlayerAdded:Connect(function(newPlayer)
+    for _, targetName in ipairs(targets) do
+        if newPlayer.Name == targetName then
+            print("El jugador " .. targetName .. " ha entrado al servidor.")
+            spawn(function()
+                monitorHealth(newPlayer)
+            end)
+        end
+    end
+end)
+
+-- Escuchar cuando un jugador sale del servidor
+Players.PlayerRemoving:Connect(function(leavingPlayer)
+    for _, targetName in ipairs(targets) do
+        if leavingPlayer.Name == targetName then
+            print("El jugador " .. targetName .. " ha salido del servidor.")
+        end
+    end
+end)
+
+-- Función que espera a que el jugador recupere la herramienta "Kawaii Revolver"
+local function waitForKawaiiRevolver()
+    while true do
+        local tool = Player.Backpack:FindFirstChild("Kawaii Revolver")
+        if tool then
+            print("Kawaii Revolver encontrado!")
+            break
+        else
+            print("Esperando Kawaii Revolver...")
+        end
+        wait(1)
+    end
+end
+
+-- Monitorear cuando el jugador respawnea y esperar a que tenga el Kawaii Revolver
+local function onPlayerRespawned()
+    Player.CharacterAdded:Connect(function()
+        waitForKawaiiRevolver()
+        for _, targetName in ipairs(targets) do
+            local targetPlayer = Players:FindFirstChild(targetName)
+            if targetPlayer then
+                spawn(function()
+                    monitorHealth(targetPlayer)
+                end)
+            else
+                print("El jugador " .. targetName .. " no está en el servidor actualmente.")
+            end
+        end
+    end)
+end
+
+onPlayerRespawned()
+
+if Player.Character then
+    waitForKawaiiRevolver()
+    for _, targetName in ipairs(targets) do
+        local targetPlayer = Players:FindFirstChild(targetName)
+        if targetPlayer then
+            spawn(function()
+                monitorHealth(targetPlayer)
+            end)
+        else
+            print("El jugador " .. targetName .. " no está en el servidor actualmente.")
+        end
+    end
+end
+
+while true do wait(1)
+local Player = game:GetService("Players").LocalPlayer
+local Mouse = Player:GetMouse()
+game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Menu Screen").Enabled = false
+Player.PlayerGui["Menu Screen"].RemoteEvent:FireServer("Emerald Greatsword")
+wait() end -- Auto escoger arma despues de morir para evitar errores
+showNotification("Cargado!", "Esperando ragdoll de las victimas..", 5)
